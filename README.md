@@ -2,6 +2,10 @@
 
 This is implementation of **[Relevance-CAM: Your Model Already Knows Where to Look]** which is accepted by CVPR 2021
 
+<img src="https://github.com/mongeoroo/Relevance-CAM/blob/main/images/Comparison.jpg?raw=true" width="400px" height="350px" title="px(픽셀) 크기 설정" alt="Comparison"></img><br/>
+
+
+
 ## Introduction
 Official implementation of [Relevance-CAM: Your Model Already Knows Where to Look].
 
@@ -15,7 +19,9 @@ Method consists of 3 phases:
 
 3. Weighted summation with activation map and weighting component.
 
-<img src="https://github.com/mongeoroo/Relevance-CAM/blob/main/images/R_CAM_pipeline.jpg?raw=true" width="600px" height="600px" title="px(픽셀) 크기 설정" alt="Relevance-CAM pipeline"></img><br/>
+<img src="https://github.com/mongeoroo/Relevance-CAM/blob/main/images/R_CAM_pipeline.jpg?raw=true" width="400px" height="350px" title="px(픽셀) 크기 설정" alt="Relevance-CAM pipeline"></img><br/>
+
+
 ### Code explanation
 
 
