@@ -15,10 +15,7 @@ Method consists of 3 phases:
 
 3. Weighted summation with activation map and weighting component.
 
-
-![Relevance-CAM Pipeline]("./images/R_CAM_pipeline.jpg")
-<img src='./images/R_CAM_pipline.jpg'>
-
+<img src="https://github.com/mongeoroo/Relevance-CAM/blob/main/images/R_CAM_pipeline.jpg?raw=true" width="600px" height="600px" title="px(픽셀) 크기 설정" alt="Relevance-CAM pipeline"></img><br/>
 ### Code explanation
 
 
