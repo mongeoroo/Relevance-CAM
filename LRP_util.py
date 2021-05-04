@@ -33,12 +33,13 @@ def z_norm(x):
 
     return x
 
-def min_max(x):
-    x -= x.min()
-    x /= x.max()
+def threshold(x):
+    mean_ = x.mean()
+    std_ = x.std()
+    thresh = mean_ +std_
+    x = (x>thresh)
 
     return x
-
 
 
 def hm_to_rgb(R, cmap = 'bwr', normalize = True):

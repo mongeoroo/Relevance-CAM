@@ -308,20 +308,7 @@ class ResNet(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
-        R = self.CLRP(x)
-        R = self.fc.relprop(R, 1)
-        R = R.reshape_as(self.avgpool.Y)
-        R = self.avgpool.relprop(R, 1)
-        R = self.layer4.relprop(R, 1)
-        R = self.layer3.relprop(R, 1)
-        # R = self.layer2.relprop(R, 1)
-
-        r_weight = torch.mean(R, dim=(2,3), keepdim=True)
-        # r_cam = layer4 * r_weight
-        r_cam = layer2*r_weight
-        r_cam = torch.sum(r_cam,dim=(0,1))
-
-        return x, r_cam
+        return x
 
     def relprop(self, R, alpha, flag = 'inter'):
         if self.long:
