@@ -16,7 +16,9 @@ Method consists of 3 phases:
 3. Weighted summation with activation map and weighting component.
 
 
-![Relevance-CAM Pipeline]("images/R_CAM_pipeline.jpg")
+![Relevance-CAM Pipeline]("./images/R_CAM_pipeline.jpg")
+<img src='./images/R_CAM_pipline.jpg'>
+
 ### Code explanation
 
 
