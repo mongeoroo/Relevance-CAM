@@ -23,7 +23,12 @@ Method consists of 3 phases:
 
 
 ### Code explanation
-
-
+Example: By running Multi_CAM.py, multiple CAM results of images in the picture folder can be saved in the results folder. 
+```
+python Multi_CAM.py --models resnet50 --target_layer layer2
+```
+ 1. Choose model, resnet50 or vgg16, by --models. 
+ 2. Choose target_layer. for example, you can choose layer2 of resnet50 by --target_layer.
+ 3. Choose target_class. If you want to make R-CAM for african elephant class, you can use --target_class 386, 386 is index of ImageNet for elephant. default value is maximum index of model output.
 
 

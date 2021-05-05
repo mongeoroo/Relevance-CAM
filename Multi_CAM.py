@@ -43,6 +43,7 @@ elif model_arch == 'resnet50':
     model = resnet50(pretrained=True).cuda().eval() #####
     target_layer = model.layer2
 
+
 layer_path = args.target_layer
 ###########################################################################################################################
 
