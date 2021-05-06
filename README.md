@@ -33,5 +33,5 @@ python Multi_CAM.py --models resnet50 --target_layer layer2
 
 ### Citation
 ```
-coming soon....
+After June 19, 2021
 ```
