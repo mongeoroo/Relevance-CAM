@@ -37,14 +37,22 @@ args = parser.parse_args()
 model_arch = args.models
 
 if model_arch == 'vgg16':
-    model = vgg16(pretrained=True).cuda().eval()  #####
-    target_layer = model.features[43]
+    model = vgg16_bn(pretrained=True).cuda().eval()  #####
+    target_layer = model.features[int(args.target_layer)]
+    layer_path = int(args.target_layer)
 elif model_arch == 'resnet50':
     model = resnet50(pretrained=True).cuda().eval() #####
-    target_layer = model.layer2
+    if args.target_layer == 'layer1':
+        target_layer = model.layer1
+    elif args.target_layer == 'layer2':
+        target_layer = model.layer2
+    elif args.target_layer == 'layer3':
+        target_layer = model.layer3
+    elif args.target_layer == 'layer4':
+        target_layer = model.layer4
+    layer_path = args.target_layer
 
 
-layer_path = args.target_layer
 ###########################################################################################################################
 
 CAM_CLASS = GradCAM_multi(model, target_layer)
@@ -83,10 +91,6 @@ for path in path_s:
     score_map = score_map.squeeze()
     score_map = score_map.detach().cpu().numpy()
     R_CAM = cv2.resize(np.sum(activation * r_weight, axis=-1),(224,224))
-
-
-    a = cv2.resize(np.sum(activation,axis=-1),(224,224))
-
 
     fig = plt.figure(figsize=(10, 10))
     plt.subplots_adjust(bottom=0.01)

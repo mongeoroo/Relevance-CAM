@@ -114,12 +114,12 @@ class VGG(nn.Module):
         x = self.classifier(x)
         return x
 
-    def relprop(self, R, alpha, save_layer=-1):
+    def relprop(self, R, alpha, flag=-1):
         x = self.classifier.relprop(R, alpha)
         x = x.reshape_as(next(reversed(self.features._modules.values())).Y)
         x = self.avgpool.relprop(x, alpha)
         # x = self.features.relprop(x, alpha)
-        for i in range(43, save_layer, -1):
+        for i in range(43, flag, -1):
             x = self.features[i].relprop(x, alpha)
         return x
 

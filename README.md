@@ -25,7 +25,11 @@ Method consists of 3 phases:
 ### Code explanation
 Example: By running Multi_CAM.py, multiple CAM results of images in the picture folder can be saved in the results folder. 
 ```
-python Multi_CAM.py --models resnet50 --target_layer layer2
+python Multi_CAM.py --models resnet50 --target_layer layer2   for last layer of ResNet50
+python Multi_CAM.py --models resnet50 --target_layer layer4   for intermediate layer of ResNet50
+
+python Multi_CAM.py --models vgg16 --target_layer 43            for last layer of VGG16
+python Multi_CAM.py --models vgg16 --target_layer 23            for intermediate layer of VGG16
 ```
 1. Model: resnet50 or vgg16, by --models. 
 2. Target layer for R-CAM: you can choose layer2 of resnet50 by --target_layer.
