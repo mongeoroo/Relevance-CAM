@@ -37,5 +37,12 @@ python Multi_CAM.py --models vgg16 --target_layer 23            for intermediate
 
 ### Citation
 ```
-After June 19, 2021
+@InProceedings{Lee_2021_CVPR,
+    author    = {Lee, Jeong Ryong and Kim, Sewon and Park, Inyong and Eo, Taejoon and Hwang, Dosik},
+    title     = {Relevance-CAM: Your Model Already Knows Where To Look},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2021},
+    pages     = {14944-14953}
+}
 ```
