@@ -113,6 +113,9 @@ class Identity(nn.Identity, RelProp):
 class ReLU(nn.ReLU, RelProp):
     pass
 
+class LeakyReLU(nn.LeakyReLU, RelProp):
+    pass
+
 class Dropout(nn.Dropout, RelProp):
     pass
 
