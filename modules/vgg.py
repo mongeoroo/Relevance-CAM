@@ -104,15 +104,47 @@ class VGG(nn.Module):
             Dropout(),
             Linear(4096, num_classes),
         )
+        self.num_classes = num_classes
         if init_weights:
             self._initialize_weights()
 
-    def forward(self, x):
-        x = self.features(x)
+    def CLRP(self, x, maxindex = [None]):
+        if maxindex == [None]:
+            maxindex = torch.argmax(x, dim=1)
+        R = torch.ones(x.shape).cuda()
+        R /= -self.num_classes
+        for i in range(R.size(0)):
+            R[i, maxindex[i]] = 1
+        return R
+
+    def forward(self, x,mode='output', target_class = [None]):
+        for i, layer in enumerate(self.features):
+            x = layer(x)
+            if mode.lstrip('-').isnumeric():
+                if int(mode) == i:
+                    target_layer = x
+
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
-        return x
+
+        if mode == 'output':
+            return x
+
+        R = self.CLRP(x, target_class)
+        R = self.classifier.relprop(R)
+        R = R.reshape_as(next(reversed(self.features._modules.values())).Y)
+        R = self.avgpool.relprop(R)
+
+        for i in range(len(self.features)-1, int(mode), -1):
+            R = self.features[i].relprop(R)
+
+        r_weight = torch.mean(R, dim=(2, 3), keepdim=True)
+        r_cam = target_layer * r_weight
+        r_cam = torch.sum(r_cam, dim=(1), keepdim=True)
+        return r_cam, x
+
+
 
     def relprop(self, R, alpha, flag=-1):
         x = self.classifier.relprop(R, alpha)

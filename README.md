@@ -30,6 +30,9 @@ python Multi_CAM.py --models resnet50 --target_layer layer4   for the intermedia
 
 python Multi_CAM.py --models vgg16 --target_layer 43          for the last layer of VGG16
 python Multi_CAM.py --models vgg16 --target_layer 23          for the intermediate layer of VGG16
+
+python Multi_CAM.py --models vgg19 --target_layer 52          for the last layer of VGG16
+python Multi_CAM.py --models vgg19 --target_layer 39          for the intermediate layer of VGG16
 ```
 1. Model: resnet50 or vgg16, by --models. 
 2. Target layer for R-CAM: you can choose layer2 of resnet50 by --target_layer.

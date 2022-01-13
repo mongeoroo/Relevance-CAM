@@ -243,6 +243,7 @@ class ResNet(nn.Module):
         self.avgpool = AdaptiveAvgPool2d((1, 1))
         self.fc = Linear(512 * block.expansion, num_classes)
         self.long = long
+        self.num_classes = num_classes
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -277,22 +278,16 @@ class ResNet(nn.Module):
 
         return Sequential(*layers)
 
-
-    def CLRP(self,x):
-        maxindex = torch.argmax(x)
+    def CLRP(self, x, maxindex = [None]):
+        if maxindex == [None]:
+            maxindex = torch.argmax(x, dim=1)
         R = torch.ones(x.shape).cuda()
-        R /= -1000
-        R[:, maxindex] = 1
-
+        R /= -self.num_classes
+        for i in range(R.size(0)):
+            R[i, maxindex[i]] = 1
         return R
 
-    def LRP(self,x):
-        maxindex = torch.argmax(x)
-        R = torch.zeros(x.shape).cuda()
-        R[:, maxindex] = 1
-        return R
-
-    def forward(self, x):
+    def forward(self, x, mode='output', target_class = [None]):
 
         x = self.conv1(x)
         x = self.bn1(x)
@@ -306,9 +301,36 @@ class ResNet(nn.Module):
 
         x = self.avgpool(layer4)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        z = self.fc(x)
+        if mode == 'output':
+            return z
 
-        return x
+        R = self.CLRP(z, target_class)
+        R = self.fc.relprop(R, 1)
+        R = R.reshape_as(self.avgpool.Y)
+        R4 = self.avgpool.relprop(R, 1)
+
+        if mode == 'layer4':
+            r_weight4 = torch.mean(R4, dim=(2, 3), keepdim=True)
+            r_cam4 = layer4 * r_weight4
+            r_cam4 = torch.sum(r_cam4, dim=(1), keepdim=True)
+            return r_cam4, z
+
+        elif mode == 'layer3':
+            R3 = self.layer4.relprop(R4, 1)
+            r_weight3 = torch.mean(R3, dim=(2, 3), keepdim=True)
+            r_cam3 = layer3 * r_weight3
+            r_cam3 = torch.sum(r_cam3, dim=(1), keepdim=True)
+            return r_cam3, z
+        elif mode == 'layer2':
+            R3 = self.layer4.relprop(R4, 1)
+            R2 = self.layer3.relprop(R3, 1)
+            r_weight2 = torch.mean(R2, dim=(2, 3), keepdim=True)
+            r_cam2 = layer2 * r_weight2
+            r_cam2 = torch.sum(r_cam2, dim=(1), keepdim=True)
+            return r_cam2, z
+        else:
+            return z
 
     def relprop(self, R, alpha, flag = 'inter'):
         if self.long:
