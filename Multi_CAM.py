@@ -22,12 +22,11 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--models', type=str, default='resnet50',
                     help='resnet50 or vgg16 or vgg19')
-parser.add_argument('--target_layer', type=str, default='layer4',
+parser.add_argument('--target_layer', type=str, default='layer1',
                     help='target_layer')
 parser.add_argument('--target_class', type=int, default=None,
                     help='target_class')
 args = parser.parse_args()
-xMode = False
 
 # define data loader
 
@@ -66,17 +65,20 @@ target_layer.register_forward_hook(forward_hook)
 target_layer.register_backward_hook(backward_hook)
 
 
-path_s = os.listdir('./picture')
+# path_s = os.listdir('./picture')
+path_s = os.listdir('./sample-imagenet')
 
-for path in path_s:
-    img_path_long = './picture/{}'.format(path)
+
+for path in path_s[:10]:
+    # img_path_long = './picture/{}'.format(path)
+    img_path_long = './sample-imagenet/{}'.format(path)
     img = cv2.imread(img_path_long,1)
     img_show = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_show = cv2.resize(img_show,(224,224))
     img = np.float32(cv2.resize(img, (224,224)))/255
 
     in_tensor = preprocess_image(img).cuda() if torch.cuda.is_available() else preprocess_image(img)
-    R_CAM, output = model(in_tensor, args.target_layer, [args.target_class], xMode=xMode)
+    XR_CAM, R_CAM, output = model(in_tensor, args.target_layer, [args.target_class])
 
     if args.target_class == None:
         maxindex = np.argmax(output.data.cpu().numpy())
@@ -84,7 +86,8 @@ for path in path_s:
         maxindex = args.target_class
 
     print(index2class[maxindex])
-    save_path = './results/{}_{}_{}_{}'.format(index2class[maxindex][:10], 'XRelevance' if xMode else 'Relevance', args.target_layer, img_path_long.split('/')[-1])
+    # save_path = './results/{}_{}_{}_{}'.format(index2class[maxindex][:10], 'XRelevance' if xMode else 'Relevance', args.target_layer, img_path_long.split('/')[-1])
+    save_path = './results-sample-imagenet/{}_{}'.format(args.target_layer, img_path_long.split('/')[-1])
 
     output[:, maxindex].sum().backward(retain_graph=True)
     activation = value['activations']  # [1, 2048, 7, 7]
@@ -99,7 +102,6 @@ for path in path_s:
     grad_cam = grad_cam.data.cpu().numpy()
     grad_cam = cv2.resize(grad_cam, (224, 224))
 
-
     alpha_numer = gradient_2
     alpha_denom = 2 * gradient_2 + torch.sum(activation * gradient_3, axis=(2, 3), keepdims=True)  # + 1e-2
     alpha = alpha_numer / alpha_denom
@@ -110,6 +112,7 @@ for path in path_s:
     grad_campp = grad_campp.data.cpu().numpy()
     grad_campp = cv2.resize(grad_campp, (224, 224))
 
+    XR_CAM = tensor2image(XR_CAM)
     R_CAM = tensor2image(R_CAM)
 
     fig = plt.figure(figsize=(10, 10))
@@ -146,6 +149,7 @@ for path in path_s:
     plt.title('Grad CAM++', fontsize=15)
     plt.axis('off')
 
+    # TODO: replace this with XGradCAM
     # plt.subplot(2, 5, 4)
     # plt.imshow((score_map),cmap='seismic')
     # plt.imshow(img_show, alpha=.5)
@@ -157,15 +161,26 @@ for path in path_s:
     # plt.title('Score_CAM', fontsize=15)
     # plt.axis('off')
 
-    plt.subplot(2, 5, 5)
+    plt.subplot(2, 5, 4)
     plt.imshow((R_CAM),cmap='seismic')
     plt.imshow(img_show, alpha=.5)
     plt.title('Relevance_CAM', fontsize=15)
     plt.axis('off')
 
-    plt.subplot(2, 5, 5 + 5)
+    plt.subplot(2, 5, 4 + 5)
     plt.imshow(img_show*threshold(R_CAM)[...,np.newaxis])
     plt.title('Relevance_CAM', fontsize=15)
+    plt.axis('off')
+
+    plt.subplot(2, 5, 5)
+    plt.imshow((XR_CAM),cmap='seismic')
+    plt.imshow(img_show, alpha=.5)
+    plt.title('XRelevance_CAM', fontsize=15)
+    plt.axis('off')
+
+    plt.subplot(2, 5, 5 + 5)
+    plt.imshow(img_show*threshold(XR_CAM)[...,np.newaxis])
+    plt.title('XRelevance_CAM', fontsize=15)
     plt.axis('off')
 
     plt.tight_layout()
