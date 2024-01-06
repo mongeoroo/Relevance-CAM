@@ -69,13 +69,23 @@ target_layer.register_backward_hook(backward_hook)
 path_s = os.listdir('./sample-imagenet')
 
 def save_cam(cam, image, save_path):
+    # save cam
     plt.imshow((cam),cmap='seismic')
     plt.imshow(image, alpha=.5)
     plt.axis('off')
     plt.tight_layout()
     plt.draw()
-    plt.show()
+    # plt.show()
     plt.savefig(save_path)
+    plt.clf()
+    plt.close()
+
+    # save segmentation
+    plt.imshow(image*threshold(cam)[...,np.newaxis])
+    plt.axis('off')
+    plt.tight_layout()
+    plt.draw()
+    plt.savefig(save_path+'_seg')
     plt.clf()
     plt.close()
 
