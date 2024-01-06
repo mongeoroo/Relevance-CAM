@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--models', type=str, default='resnet50',
                     help='resnet50 or vgg16 or vgg19')
-parser.add_argument('--target_layer', type=str, default='layer1',
+parser.add_argument('--target_layer', type=str, default='layer4',
                     help='target_layer')
 parser.add_argument('--target_class', type=int, default=None,
                     help='target_class')
@@ -95,6 +95,7 @@ for path in path_s[:10]:
     gradient_2 = gradient ** 2
     gradient_3 = gradient ** 3
 
+    # grad-cam
     gradient_ = torch.mean(gradient, dim=(2, 3), keepdim=True)
     grad_cam = activation * gradient_
     grad_cam = torch.sum(grad_cam, dim=(0, 1))
@@ -102,17 +103,30 @@ for path in path_s[:10]:
     grad_cam = grad_cam.data.cpu().numpy()
     grad_cam = cv2.resize(grad_cam, (224, 224))
 
-    alpha_numer = gradient_2
-    alpha_denom = 2 * gradient_2 + torch.sum(activation * gradient_3, axis=(2, 3), keepdims=True)  # + 1e-2
-    alpha = alpha_numer / alpha_denom
-    w = torch.sum(alpha * torch.clamp(gradient, 0), axis=(2, 3), keepdims=True)
-    grad_campp = activation * w
-    grad_campp = torch.sum(grad_campp, dim=(0, 1))
-    grad_campp = torch.clamp(grad_campp, min=0)
-    grad_campp = grad_campp.data.cpu().numpy()
-    grad_campp = cv2.resize(grad_campp, (224, 224))
+    # xgrad-cam
+    w = (gradient*activation) / torch.sum(activation, dim=(2,3), keepdim=True).add(1e-8)
+    w = torch.sum(w, dim=(2,3), keepdim=True)
+    xgrad_cam = activation * w
+    xgrad_cam = torch.sum(xgrad_cam, dim=(0,1))
+    xgrad_cam = torch.clamp(xgrad_cam, min=0)
+    xgrad_cam = xgrad_cam.data.cpu().numpy()
+    xgrad_cam = cv2.resize(xgrad_cam, (224, 224))
 
+    # grad-cam++
+    # alpha_numer = gradient_2
+    # alpha_denom = 2 * gradient_2 + torch.sum(activation * gradient_3, axis=(2, 3), keepdims=True)  # + 1e-2
+    # alpha = alpha_numer / alpha_denom
+    # w = torch.sum(alpha * torch.clamp(gradient, 0), axis=(2, 3), keepdims=True)
+    # grad_campp = activation * w
+    # grad_campp = torch.sum(grad_campp, dim=(0, 1))
+    # grad_campp = torch.clamp(grad_campp, min=0)
+    # grad_campp = grad_campp.data.cpu().numpy()
+    # grad_campp = cv2.resize(grad_campp, (224, 224))
+
+    # xrelevance-cam
     XR_CAM = tensor2image(XR_CAM)
+
+    # relevance-cam
     R_CAM = tensor2image(R_CAM)
 
     fig = plt.figure(figsize=(10, 10))
@@ -130,23 +144,34 @@ for path in path_s[:10]:
     plt.subplot(2, 5, 2)
     plt.imshow((grad_cam),cmap='seismic')
     plt.imshow(img_show, alpha=.5)
-    plt.title('Grad CAM', fontsize=15)
+    plt.title('GradCAM', fontsize=15)
     plt.axis('off')
 
     plt.subplot(2, 5, 2 + 5)
     plt.imshow(img_show*threshold(grad_cam)[...,np.newaxis])
-    plt.title('Grad CAM', fontsize=15)
+    plt.title('GradCAM', fontsize=15)
     plt.axis('off')
 
+    # plt.subplot(2, 5, 3)
+    # plt.imshow((grad_campp),cmap='seismic')
+    # plt.imshow(img_show, alpha=.5)
+    # plt.title('Grad CAM++', fontsize=15)
+    # plt.axis('off')
+
+    # plt.subplot(2, 5, 3 + 5)
+    # plt.imshow(img_show*threshold(grad_campp)[...,np.newaxis])
+    # plt.title('Grad CAM++', fontsize=15)
+    # plt.axis('off')
+
     plt.subplot(2, 5, 3)
-    plt.imshow((grad_campp),cmap='seismic')
+    plt.imshow((xgrad_cam),cmap='seismic')
     plt.imshow(img_show, alpha=.5)
-    plt.title('Grad CAM++', fontsize=15)
+    plt.title('XGradCAM', fontsize=15)
     plt.axis('off')
 
     plt.subplot(2, 5, 3 + 5)
-    plt.imshow(img_show*threshold(grad_campp)[...,np.newaxis])
-    plt.title('Grad CAM++', fontsize=15)
+    plt.imshow(img_show*threshold(xgrad_cam)[...,np.newaxis])
+    plt.title('XGradCAM', fontsize=15)
     plt.axis('off')
 
     # TODO: replace this with XGradCAM
@@ -164,23 +189,23 @@ for path in path_s[:10]:
     plt.subplot(2, 5, 4)
     plt.imshow((R_CAM),cmap='seismic')
     plt.imshow(img_show, alpha=.5)
-    plt.title('Relevance_CAM', fontsize=15)
+    plt.title('RelevanceCAM', fontsize=15)
     plt.axis('off')
 
     plt.subplot(2, 5, 4 + 5)
     plt.imshow(img_show*threshold(R_CAM)[...,np.newaxis])
-    plt.title('Relevance_CAM', fontsize=15)
+    plt.title('RelevanceCAM', fontsize=15)
     plt.axis('off')
 
     plt.subplot(2, 5, 5)
     plt.imshow((XR_CAM),cmap='seismic')
     plt.imshow(img_show, alpha=.5)
-    plt.title('XRelevance_CAM', fontsize=15)
+    plt.title('XRelevanceCAM', fontsize=15)
     plt.axis('off')
 
     plt.subplot(2, 5, 5 + 5)
     plt.imshow(img_show*threshold(XR_CAM)[...,np.newaxis])
-    plt.title('XRelevance_CAM', fontsize=15)
+    plt.title('XRelevanceCAM', fontsize=15)
     plt.axis('off')
 
     plt.tight_layout()
