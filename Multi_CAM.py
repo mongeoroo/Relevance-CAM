@@ -22,11 +22,12 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--models', type=str, default='resnet50',
                     help='resnet50 or vgg16 or vgg19')
-parser.add_argument('--target_layer', type=str, default='layer2',
+parser.add_argument('--target_layer', type=str, default='layer4',
                     help='target_layer')
 parser.add_argument('--target_class', type=int, default=None,
                     help='target_class')
 args = parser.parse_args()
+xMode = False
 
 # define data loader
 
@@ -34,13 +35,13 @@ args = parser.parse_args()
 model_arch = args.models
 
 if model_arch == 'vgg16':
-    model = vgg16_bn(pretrained=True).cuda().eval()  #####
+    model = vgg16_bn(pretrained=True)  #####
     target_layer = model.features[int(args.target_layer)]
 elif model_arch == 'vgg19':
-    model = vgg19_bn(pretrained=True).cuda().eval()  #####
+    model = vgg19_bn(pretrained=True) #####
     target_layer = model.features[int(args.target_layer)]
 elif model_arch == 'resnet50':
-    model = resnet50(pretrained=True).cuda().eval() #####
+    model = resnet50(pretrained=True) #####
     if args.target_layer == 'layer1':
         target_layer = model.layer1
     elif args.target_layer == 'layer2':
@@ -49,6 +50,10 @@ elif model_arch == 'resnet50':
         target_layer = model.layer3
     elif args.target_layer == 'layer4':
         target_layer = model.layer4
+
+if torch.cuda.is_available():
+    model = model.cuda()
+model.eval()
 #######################################################################################################################
 
 value = dict()
@@ -60,7 +65,6 @@ def backward_hook(module, input, output):
 target_layer.register_forward_hook(forward_hook)
 target_layer.register_backward_hook(backward_hook)
 
-Score_CAM_class = ScoreCAM(model,target_layer)
 
 path_s = os.listdir('./picture')
 
@@ -71,8 +75,8 @@ for path in path_s:
     img_show = cv2.resize(img_show,(224,224))
     img = np.float32(cv2.resize(img, (224,224)))/255
 
-    in_tensor = preprocess_image(img).cuda()
-    R_CAM, output = model(in_tensor, args.target_layer, [args.target_class])
+    in_tensor = preprocess_image(img).cuda() if torch.cuda.is_available() else preprocess_image(img)
+    R_CAM, output = model(in_tensor, args.target_layer, [args.target_class], xMode=xMode)
 
     if args.target_class == None:
         maxindex = np.argmax(output.data.cpu().numpy())
@@ -80,7 +84,7 @@ for path in path_s:
         maxindex = args.target_class
 
     print(index2class[maxindex])
-    save_path = './results/{}_{}'.format(index2class[maxindex][:10], img_path_long.split('/')[-1])
+    save_path = './results/{}_{}_{}_{}'.format(index2class[maxindex][:10], 'XRelevance' if xMode else 'Relevance', args.target_layer, img_path_long.split('/')[-1])
 
     output[:, maxindex].sum().backward(retain_graph=True)
     activation = value['activations']  # [1, 2048, 7, 7]
@@ -106,10 +110,6 @@ for path in path_s:
     grad_campp = grad_campp.data.cpu().numpy()
     grad_campp = cv2.resize(grad_campp, (224, 224))
 
-
-    score_map, _ = Score_CAM_class(in_tensor, class_idx=maxindex)
-    score_map = score_map.squeeze()
-    score_map = score_map.detach().cpu().numpy()
     R_CAM = tensor2image(R_CAM)
 
     fig = plt.figure(figsize=(10, 10))
@@ -146,16 +146,16 @@ for path in path_s:
     plt.title('Grad CAM++', fontsize=15)
     plt.axis('off')
 
-    plt.subplot(2, 5, 4)
-    plt.imshow((score_map),cmap='seismic')
-    plt.imshow(img_show, alpha=.5)
-    plt.title('Score_CAM', fontsize=15)
-    plt.axis('off')
+    # plt.subplot(2, 5, 4)
+    # plt.imshow((score_map),cmap='seismic')
+    # plt.imshow(img_show, alpha=.5)
+    # plt.title('Score_CAM', fontsize=15)
+    # plt.axis('off')
 
-    plt.subplot(2, 5, 4 + 5)
-    plt.imshow(img_show*threshold(score_map)[...,np.newaxis])
-    plt.title('Score_CAM', fontsize=15)
-    plt.axis('off')
+    # plt.subplot(2, 5, 4 + 5)
+    # plt.imshow(img_show*threshold(score_map)[...,np.newaxis])
+    # plt.title('Score_CAM', fontsize=15)
+    # plt.axis('off')
 
     plt.subplot(2, 5, 5)
     plt.imshow((R_CAM),cmap='seismic')
