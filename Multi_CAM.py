@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--models', type=str, default='resnet50',
                     help='resnet50 or vgg16 or vgg19')
-parser.add_argument('--target_layer', type=str, default='layer3',
+parser.add_argument('--target_layer', type=str, default='layer4',
                     help='target_layer')
 parser.add_argument('--target_class', type=int, default=None,
                     help='target_class')
@@ -89,82 +89,87 @@ def save_cam(cam, image, save_path):
     plt.clf()
     plt.close()
 
-for path in path_s[:200]:
+for k, path in enumerate(path_s[:200]):
     # img_path_long = './picture/{}'.format(path)
-    img_path_long = './sample-imagenet/{}'.format(path)
-    img = cv2.imread(img_path_long,1)
-    img_show = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img_show = cv2.resize(img_show,(224,224))
-    img = np.float32(cv2.resize(img, (224,224)))/255
+    try:
+        img_path_long = './sample-imagenet/{}'.format(path)
+        img = cv2.imread(img_path_long,1)
+        img_show = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_show = cv2.resize(img_show,(224,224))
+        img = np.float32(cv2.resize(img, (224,224)))/255
 
-    in_tensor = preprocess_image(img).cuda() if torch.cuda.is_available() else preprocess_image(img)
-    XR_CAM, R_CAM, output = model(in_tensor, args.target_layer, [args.target_class])
+        in_tensor = preprocess_image(img).cuda() if torch.cuda.is_available() else preprocess_image(img)
+        XR_CAM, R_CAM, output = model(in_tensor, args.target_layer, [args.target_class])
 
-    if args.target_class == None:
-        maxindex = np.argmax(output.data.cpu().numpy())
-    else:
-        maxindex = args.target_class
+        if args.target_class == None:
+            maxindex = np.argmax(output.data.cpu().numpy())
+        else:
+            maxindex = args.target_class
 
-    print(index2class[maxindex])
-    # save_path = './results/{}_{}_{}_{}'.format(index2class[maxindex][:10], 'XRelevance' if xMode else 'Relevance', args.target_layer, img_path_long.split('/')[-1])
-    # save_path = './results-sample-imagenet/{}_{}'.format(args.target_layer, img_path_long.split('/')[-1])
+        print('{}/{} - {}'.format(k, len(path_s[:200]), index2class[maxindex]))
+        # save_path = './results/{}_{}_{}_{}'.format(index2class[maxindex][:10], 'XRelevance' if xMode else 'Relevance', args.target_layer, img_path_long.split('/')[-1])
+        # save_path = './results-sample-imagenet/{}_{}'.format(args.target_layer, img_path_long.split('/')[-1])
 
-    output[:, maxindex].sum().backward(retain_graph=True)
-    activation = value['activations']  # [1, 2048, 7, 7]
-    gradient = value['gradients']  # [1, 2048, 7, 7]
-    gradient_2 = gradient ** 2
-    gradient_3 = gradient ** 3
+        output[:, maxindex].sum().backward(retain_graph=True)
+        activation = value['activations']  # [1, 2048, 7, 7]
+        gradient = value['gradients']  # [1, 2048, 7, 7]
+        gradient_2 = gradient ** 2
+        gradient_3 = gradient ** 3
 
-    # grad-cam
-    gradient_ = torch.mean(gradient, dim=(2, 3), keepdim=True)
-    grad_cam = activation * gradient_
-    grad_cam = torch.sum(grad_cam, dim=(0, 1))
-    grad_cam = torch.clamp(grad_cam, min=0)
-    grad_cam = grad_cam.data.cpu().numpy()
-    grad_cam = cv2.resize(grad_cam, (224, 224))
+        # grad-cam
+        gradient_ = torch.mean(gradient, dim=(2, 3), keepdim=True)
+        grad_cam = activation * gradient_
+        grad_cam = torch.sum(grad_cam, dim=(0, 1))
+        grad_cam = torch.clamp(grad_cam, min=0)
+        grad_cam = grad_cam.data.cpu().numpy()
+        grad_cam = cv2.resize(grad_cam, (224, 224))
 
-    # xgrad-cam
-    w = (gradient*activation) / torch.sum(activation, dim=(2,3), keepdim=True).add(1e-8)
-    w = torch.sum(w, dim=(2,3), keepdim=True)
-    xgrad_cam = activation * w
-    xgrad_cam = torch.sum(xgrad_cam, dim=(0,1))
-    xgrad_cam = torch.clamp(xgrad_cam, min=0)
-    xgrad_cam = xgrad_cam.data.cpu().numpy()
-    xgrad_cam = cv2.resize(xgrad_cam, (224, 224))
+        # xgrad-cam
+        w = (gradient*activation) / torch.sum(activation, dim=(2,3), keepdim=True).add(1e-8)
+        w = torch.sum(w, dim=(2,3), keepdim=True)
+        xgrad_cam = activation * w
+        xgrad_cam = torch.sum(xgrad_cam, dim=(0,1))
+        xgrad_cam = torch.clamp(xgrad_cam, min=0)
+        xgrad_cam = xgrad_cam.data.cpu().numpy()
+        xgrad_cam = cv2.resize(xgrad_cam, (224, 224))
 
-    # grad-cam++
-    alpha_numer = gradient_2
-    alpha_denom = 2 * gradient_2 + torch.sum(activation * gradient_3, axis=(2, 3), keepdims=True)  # + 1e-2
-    alpha = alpha_numer / alpha_denom
-    w = torch.sum(alpha * torch.clamp(gradient, 0), axis=(2, 3), keepdims=True)
-    grad_campp = activation * w
-    grad_campp = torch.sum(grad_campp, dim=(0, 1))
-    grad_campp = torch.clamp(grad_campp, min=0)
-    grad_campp = grad_campp.data.cpu().numpy()
-    grad_campp = cv2.resize(grad_campp, (224, 224))
+        # grad-cam++
+        alpha_numer = gradient_2
+        alpha_denom = 2 * gradient_2 + torch.sum(activation * gradient_3, axis=(2, 3), keepdims=True)  # + 1e-2
+        alpha = alpha_numer / alpha_denom
+        w = torch.sum(alpha * torch.clamp(gradient, 0), axis=(2, 3), keepdims=True)
+        grad_campp = activation * w
+        grad_campp = torch.sum(grad_campp, dim=(0, 1))
+        grad_campp = torch.clamp(grad_campp, min=0)
+        grad_campp = grad_campp.data.cpu().numpy()
+        grad_campp = cv2.resize(grad_campp, (224, 224))
 
-    # xrelevance-cam
-    XR_CAM = tensor2image(XR_CAM)
+        # xrelevance-cam
+        XR_CAM = tensor2image(XR_CAM)
 
-    # relevance-cam
-    R_CAM = tensor2image(R_CAM)
+        # relevance-cam
+        R_CAM = tensor2image(R_CAM)
 
-    # create file directory if not exists
-    save_path_parent_dir  = './results-sample-imagenet/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer)
-    if not os.path.exists(save_path_parent_dir):
-        os.makedirs(save_path_parent_dir)
-    # save the cams
-    save_path_relevance_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'RelevanceCAM')
-    save_path_xrelevance_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'XRelevanceCAM')
-    save_path_xgrad_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'XGradCAM')
-    save_path_grad_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'GradCAM')
-    save_path_gradcam_pp = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'GradCAM++')
+        # create file directory if not exists
+        save_path_parent_dir  = './results-sample-imagenet/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer)
+        if not os.path.exists(save_path_parent_dir):
+            os.makedirs(save_path_parent_dir)
+        # save the cams
+        save_path_relevance_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'RelevanceCAM')
+        save_path_xrelevance_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'XRelevanceCAM')
+        save_path_xgrad_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'XGradCAM')
+        save_path_grad_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'GradCAM')
+        save_path_gradcam_pp = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'GradCAM++')
 
-    save_cam(R_CAM, img_show, save_path_relevance_cam)
-    save_cam(XR_CAM, img_show, save_path_xrelevance_cam)
-    save_cam(xgrad_cam, img_show, save_path_xgrad_cam)
-    save_cam(grad_campp, img_show, save_path_gradcam_pp)
-    save_cam(grad_cam, img_show, save_path_grad_cam)
+        save_cam(R_CAM, img_show, save_path_relevance_cam)
+        save_cam(XR_CAM, img_show, save_path_xrelevance_cam)
+        save_cam(xgrad_cam, img_show, save_path_xgrad_cam)
+        save_cam(grad_campp, img_show, save_path_gradcam_pp)
+        save_cam(grad_cam, img_show, save_path_grad_cam)
+    except:
+        print('error happens in this iteration')
+
+    
 
     # fig = plt.figure(figsize=(10, 10))
     # plt.subplots_adjust(bottom=0.01)
