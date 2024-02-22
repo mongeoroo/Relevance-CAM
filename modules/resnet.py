@@ -330,34 +330,15 @@ class ResNet(nn.Module):
         if mode == 'layer4':
             xr_cam4, r_cam4 = generate_multi_relevance_cams(R4, layer4)
             return xr_cam4, r_cam4, z
-
-            # r_weight4 = self._compute_weights(R4, layer4, xMode)
-            # # r_weight4 = torch.mean(R4, dim=(2, 3), keepdim=True)
-            # r_cam4 = layer4 * r_weight4
-            # r_cam4 = torch.sum(r_cam4, dim=(1), keepdim=True)
-            # return r_cam4, z
-
         elif mode == 'layer3':
             R3 = self.layer4.relprop(R4, 1)
             xr_cam3, r_cam3 = generate_multi_relevance_cams(R3, layer3)
             return xr_cam3, r_cam3, z
-
-            # r_weight3 = self._compute_weights(R3, layer3, xMode)
-            # # r_weight3 = torch.mean(R3, dim=(2, 3), keepdim=True)
-            # r_cam3 = layer3 * r_weight3
-            # r_cam3 = torch.sum(r_cam3, dim=(1), keepdim=True)
-            # return r_cam3, z
         elif mode == 'layer2':
             R3 = self.layer4.relprop(R4, 1)
             R2 = self.layer3.relprop(R3, 1)
             xr_cam2, r_cam2 = generate_multi_relevance_cams(R2, layer2)
             return xr_cam2, r_cam2, z
-
-            # r_weight2 = self._compute_weights(R2, layer2, xMode)
-            # # r_weight2 = torch.mean(R2, dim=(2, 3), keepdim=True)
-            # r_cam2 = layer2 * r_weight2
-            # r_cam2 = torch.sum(r_cam2, dim=(1), keepdim=True)
-            # return r_cam2, z
         elif mode == 'layer1':
             R3 = self.layer4.relprop(R4, 1)
             R2 = self.layer3.relprop(R3, 1)
@@ -365,11 +346,6 @@ class ResNet(nn.Module):
 
             xr_cam1, r_cam1 = generate_multi_relevance_cams(R1, layer1)
             return xr_cam1, r_cam1, z
-
-            # r_weight1 = self._compute_weights(R1, layer1, xMode)
-            # r_cam1 = layer1 * r_weight1
-            # r_cam1 = torch.sum(r_cam1, dim=(1), keepdim=True)
-            # return r_cam1, z
 
     def _XRelevanceCAM(self, R, activations): #XRelevanceCAM
         """state of the art among the ones that I tried but visually it is bad

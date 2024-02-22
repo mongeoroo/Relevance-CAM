@@ -21,7 +21,7 @@ import argparse
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--models', type=str, default='resnet50',
-                    help='resnet50 or vgg16 or vgg19')
+                    help='resnet50')
 parser.add_argument('--target_layer', type=str, default='layer4',
                     help='target_layer')
 parser.add_argument('--target_class', type=int, default=None,
@@ -33,13 +33,7 @@ args = parser.parse_args()
 ###########################################################################################################################
 model_arch = args.models
 
-if model_arch == 'vgg16':
-    model = vgg16_bn(pretrained=True)  #####
-    target_layer = model.features[int(args.target_layer)]
-elif model_arch == 'vgg19':
-    model = vgg19_bn(pretrained=True) #####
-    target_layer = model.features[int(args.target_layer)]
-elif model_arch == 'resnet50':
+if model_arch == 'resnet50':
     model = resnet50(pretrained=True) #####
     if args.target_layer == 'layer1':
         target_layer = model.layer1
@@ -76,7 +70,7 @@ def save_cam(cam, image, save_path):
     plt.tight_layout()
     plt.draw()
     # plt.show()
-    plt.savefig(save_path)
+    plt.savefig(save_path, bbox_inches='tight')
     plt.clf()
     plt.close()
 
@@ -85,12 +79,11 @@ def save_cam(cam, image, save_path):
     plt.axis('off')
     plt.tight_layout()
     plt.draw()
-    plt.savefig(save_path+'_seg')
+    plt.savefig(save_path+'_seg', bbox_inches='tight')
     plt.clf()
     plt.close()
 
 for k, path in enumerate(path_s[:200]):
-    # img_path_long = './picture/{}'.format(path)
     try:
         img_path_long = './sample-imagenet/{}'.format(path)
         img = cv2.imread(img_path_long,1)
@@ -107,9 +100,6 @@ for k, path in enumerate(path_s[:200]):
             maxindex = args.target_class
 
         print('{}/{} - {}'.format(k, len(path_s[:200]), index2class[maxindex]))
-        # save_path = './results/{}_{}_{}_{}'.format(index2class[maxindex][:10], 'XRelevance' if xMode else 'Relevance', args.target_layer, img_path_long.split('/')[-1])
-        # save_path = './results-sample-imagenet/{}_{}'.format(args.target_layer, img_path_long.split('/')[-1])
-
         output[:, maxindex].sum().backward(retain_graph=True)
         activation = value['activations']  # [1, 2048, 7, 7]
         gradient = value['gradients']  # [1, 2048, 7, 7]
@@ -154,6 +144,7 @@ for k, path in enumerate(path_s[:200]):
         save_path_parent_dir  = './results-sample-imagenet/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer)
         if not os.path.exists(save_path_parent_dir):
             os.makedirs(save_path_parent_dir)
+
         # save the cams
         save_path_relevance_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'RelevanceCAM')
         save_path_xrelevance_cam = './results-sample-imagenet/{}/{}/{}'.format(img_path_long.split('/')[-1], args.target_layer, 'XRelevanceCAM')
@@ -168,71 +159,6 @@ for k, path in enumerate(path_s[:200]):
         save_cam(grad_cam, img_show, save_path_grad_cam)
     except:
         print('error happens in this iteration')
-
-    
-
-    # fig = plt.figure(figsize=(10, 10))
-    # plt.subplots_adjust(bottom=0.01)
-
-    # plt.subplot(2, 5, 1)
-    # plt.imshow(img_show)
-    # plt.title('Original')
-    # plt.axis('off')
-
-    # plt.subplot(2, 5, 1 + 5)
-    # plt.imshow(img_show)
-    # plt.axis('off')
-
-    # plt.subplot(2, 5, 2)
-    # plt.imshow((grad_cam),cmap='seismic')
-    # plt.imshow(img_show, alpha=.5)
-    # plt.title('GradCAM', fontsize=15)
-    # plt.axis('off')
-
-    # plt.subplot(2, 5, 2 + 5)
-    # plt.imshow(img_show*threshold(grad_cam)[...,np.newaxis])
-    # plt.title('GradCAM', fontsize=15)
-    # plt.axis('off')
-
-    # plt.subplot(2, 5, 3)
-    # plt.imshow((xgrad_cam),cmap='seismic')
-    # plt.imshow(img_show, alpha=.5)
-    # plt.title('XGradCAM', fontsize=15)
-    # plt.axis('off')
-
-    # plt.subplot(2, 5, 3 + 5)
-    # plt.imshow(img_show*threshold(xgrad_cam)[...,np.newaxis])
-    # plt.title('XGradCAM', fontsize=15)
-    # plt.axis('off')
-
-    # plt.subplot(2, 5, 4)
-    # plt.imshow((R_CAM),cmap='seismic')
-    # plt.imshow(img_show, alpha=.5)
-    # plt.title('RelevanceCAM', fontsize=15)
-    # plt.axis('off')
-
-    # plt.subplot(2, 5, 4 + 5)
-    # plt.imshow(img_show*threshold(R_CAM)[...,np.newaxis])
-    # plt.title('RelevanceCAM', fontsize=15)
-    # plt.axis('off')
-
-    # plt.subplot(2, 5, 5)
-    # plt.imshow((XR_CAM),cmap='seismic')
-    # plt.imshow(img_show, alpha=.5)
-    # plt.title('XRelevanceCAM', fontsize=15)
-    # plt.axis('off')
-
-    # plt.subplot(2, 5, 5 + 5)
-    # plt.imshow(img_show*threshold(XR_CAM)[...,np.newaxis])
-    # plt.title('XRelevanceCAM', fontsize=15)
-    # plt.axis('off')
-
-    # plt.tight_layout()
-    # plt.draw()
-    # # plt.waitforbuttonpress()
-    # plt.savefig(save_path)
-    # plt.clf()
-    # plt.close()
 
 print('Done')
 
